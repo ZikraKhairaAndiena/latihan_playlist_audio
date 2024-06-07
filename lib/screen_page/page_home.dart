@@ -3,11 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:latihan_playlist_audio/model/model_audio.dart';
+import 'package:latihan_playlist_audio/screen_page/page_favorit.dart';
 
 enum PlayerState { stopped, playing, paused }
 
 class PageHome extends StatefulWidget {
-  const PageHome({Key? key}) : super(key: key);
+  final List<Datum> favoriteAudioList;
+  final Function(List<Datum>) onFavoriteListChanged;
+
+  const PageHome({
+    Key? key,
+    required this.favoriteAudioList,
+    required this.onFavoriteListChanged,
+  }) : super(key: key);
 
   @override
   State<PageHome> createState() => _PageHomeState();
@@ -24,17 +32,20 @@ class _PageHomeState extends State<PageHome> {
   void initState() {
     super.initState();
     _fetchAudioData();
+    _initializeFavoriteIndexes();
+  }
+
+  void _initializeFavoriteIndexes() {
+    for (int i = 0; i < _audioList.length; i++) {
+      if (widget.favoriteAudioList.contains(_audioList[i])) {
+        _favoriteIndexes.add(i);
+      }
+    }
   }
 
   Future<void> _fetchAudioData() async {
-
     try {
       final response = await http.get(Uri.parse('http://192.168.100.110/latihan_playlist_audio/getAudio.php'));
-      Image.network(
-        'http://192.168.100.110/latihan playlist audio/gambar',
-        width: double.infinity,
-        fit: BoxFit.cover,
-      );
 
       if (response.statusCode == 200) {
         final modelAudio = modelAudioFromJson(response.body);
@@ -44,6 +55,9 @@ class _PageHomeState extends State<PageHome> {
             for (int i = 0; i < _audioList.length; i++) {
               _audioPlayers.add(AudioPlayer());
               _playerStates.add(PlayerState.stopped);
+              if (widget.favoriteAudioList.contains(_audioList[i])) {
+                _favoriteIndexes.add(i);
+              }
             }
             _isLoading = false;
           });
@@ -107,9 +121,12 @@ class _PageHomeState extends State<PageHome> {
     setState(() {
       if (_favoriteIndexes.contains(index)) {
         _favoriteIndexes.remove(index);
+        widget.favoriteAudioList.remove(_audioList[index]);
       } else {
         _favoriteIndexes.add(index);
+        widget.favoriteAudioList.add(_audioList[index]);
       }
+      widget.onFavoriteListChanged(widget.favoriteAudioList);
     });
   }
 
@@ -121,11 +138,26 @@ class _PageHomeState extends State<PageHome> {
     super.dispose();
   }
 
+  void _navigateToFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PageFavorite(favoriteAudioList: widget.favoriteAudioList),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Audio Player'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            onPressed: _navigateToFavorites,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -229,6 +261,17 @@ class _PageHomeState extends State<PageHome> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        IconButton(
+                          icon: Icon(
+                            _favoriteIndexes.contains(index)
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: _favoriteIndexes.contains(index)
+                                ? Colors.red
+                                : null,
+                          ),
+                          onPressed: () => _toggleFavorite(index),
+                        ),
                         IconButton(
                           icon: const Icon(Icons.play_arrow),
                           onPressed: _playerStates[index] == PlayerState.playing ? null : () => _play(index),

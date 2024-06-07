@@ -1,31 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:latihan_playlist_audio/screen_page/page_favorit.dart';
 import 'package:latihan_playlist_audio/screen_page/page_home.dart';
+import 'package:latihan_playlist_audio/model/model_audio.dart';
 
 class PageBottomNavigationBar extends StatefulWidget {
   const PageBottomNavigationBar({Key? key}) : super(key: key);
 
   @override
-  State<PageBottomNavigationBar> createState() =>
-      _PageBottomNavigationBarState();
+  State<PageBottomNavigationBar> createState() => _PageBottomNavigationBarState();
 }
 
-class _PageBottomNavigationBarState extends State<PageBottomNavigationBar>
-    with SingleTickerProviderStateMixin {
+class _PageBottomNavigationBarState extends State<PageBottomNavigationBar> with SingleTickerProviderStateMixin {
   late TabController tabController;
-  //late SessionManager sessionManager;
+  List<Datum> _favoriteAudioList = [];
 
   @override
   void initState() {
     super.initState();
-    //sessionManager = SessionManager();
-    //sessionManager.getSession();
     tabController = TabController(length: 2, vsync: this);
     tabController.addListener(_handleTabSelection);
   }
 
   void _handleTabSelection() {
     setState(() {});
+  }
+
+  void _updateFavoriteList(List<Datum> favorites) {
+    setState(() {
+      _favoriteAudioList = favorites;
+    });
   }
 
   @override
@@ -40,7 +43,8 @@ class _PageBottomNavigationBarState extends State<PageBottomNavigationBar>
       body: TabBarView(
         controller: tabController,
         children: [
-          PageHome(),
+          PageHome(onFavoriteListChanged: _updateFavoriteList, favoriteAudioList: [],),
+          PageFavorite(favoriteAudioList: _favoriteAudioList),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -50,11 +54,11 @@ class _PageBottomNavigationBarState extends State<PageBottomNavigationBar>
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.music_note), // Ikon untuk Berita
+            icon: Icon(Icons.music_note), // Ikon untuk Music
             label: 'Music',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite), // Ikon untuk Profil
+            icon: Icon(Icons.favorite), // Ikon untuk Favorite
             label: 'Favorite',
           ),
         ],
